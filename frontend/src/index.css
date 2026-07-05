@@ -1,0 +1,136 @@
+@import "tailwindcss";
+
+@theme {
+  --color-nb-yellow: #ffd53d;
+  --color-nb-pink: #ff6bd6;
+  --color-nb-cyan: #4de8e8;
+  --color-nb-lime: #b2ff3d;
+  --color-nb-orange: #ff8a3d;
+  --color-nb-red: #ff5252;
+  --color-nb-violet: #b98bff;
+
+  /* These resolve through the runtime custom properties below, so utilities like
+     bg-nb-paper / text-nb-ink / bg-nb-bg stay theme-aware instead of being frozen
+     to their light-mode value at build time. */
+  --color-nb-ink: var(--ink);
+  --color-nb-paper: var(--paper);
+  --color-nb-bg: var(--bg);
+  --color-nb-paper-2: var(--paper-2);
+}
+
+:root {
+  color-scheme: light;
+  --ink: #111111;
+  --paper: #ffffff;
+  --paper-2: #ececE3;
+  --bg: #f5f1ea;
+  --grid-line: rgb(17 17 17 / 0.07);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ink: #f5f1ea;
+  --paper: #232329;
+  --paper-2: #2c2c34;
+  --bg: #16161a;
+  --grid-line: rgb(255 255 255 / 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --ink: #f5f1ea;
+    --paper: #232329;
+    --paper-2: #2c2c34;
+    --bg: #16161a;
+    --grid-line: rgb(255 255 255 / 0.08);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Space Grotesk", system-ui, sans-serif;
+  background-color: var(--bg);
+  color: var(--ink);
+  background-image:
+    linear-gradient(var(--grid-line) 1.5px, transparent 1.5px),
+    linear-gradient(90deg, var(--grid-line) 1.5px, transparent 1.5px);
+  background-size: 28px 28px;
+  min-height: 100vh;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+/* Neobrutalist primitives shared across components */
+.nb-border {
+  border: 3px solid var(--ink);
+}
+
+.nb-shadow-sm {
+  box-shadow: 3px 3px 0 0 var(--ink);
+}
+.nb-shadow {
+  box-shadow: 5px 5px 0 0 var(--ink);
+}
+.nb-shadow-lg {
+  box-shadow: 8px 8px 0 0 var(--ink);
+}
+
+.nb-press {
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+.nb-press:active {
+  transform: translate(3px, 3px);
+  box-shadow: 0 0 0 0 var(--ink) !important;
+}
+
+::selection {
+  background: var(--color-nb-yellow);
+  color: #111111;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--ink);
+  border: 2px solid var(--bg);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) translateX(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) translateX(0);
+  }
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.9; }
+}
+.nb-skeleton {
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+  background-color: var(--paper-2);
+}
+
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
