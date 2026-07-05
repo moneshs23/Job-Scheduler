@@ -32,6 +32,10 @@ const STATUS_OPTIONS = [
 
 const TERMINAL = new Set(["completed", "cancelled", "dead_letter"]);
 
+function defaultJobName(task: string): string {
+  return `${task.replace(/_/g, "-")}-job`;
+}
+
 export function JobsPage() {
   const { project } = useProject();
   const { push } = useToast();
@@ -238,7 +242,7 @@ function CreateJobModal({
   const queryClient = useQueryClient();
   const { push } = useToast();
   const [form, setForm] = useState({
-    name: "",
+    name: defaultJobName("echo"),
     queue_id: queues[0]?.id ?? "",
     task: "echo",
     argsJson: "{}",
@@ -247,7 +251,12 @@ function CreateJobModal({
     cronExpression: "*/5 * * * *",
     maxAttempts: 3,
   });
+  const [nameEdited, setNameEdited] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+
+  const onTaskChange = (task: string) => {
+    setForm((f) => ({ ...f, task, name: nameEdited ? f.name : defaultJobName(task) }));
+  };
 
   const createJob = useMutation({
     mutationFn: async () => {
@@ -289,7 +298,10 @@ function CreateJobModal({
           <Input
             required
             value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            onChange={(e) => {
+              setNameEdited(true);
+              setForm({ ...form, name: e.target.value });
+            }}
             placeholder="e.g. send-welcome-email"
           />
         </div>
@@ -305,7 +317,7 @@ function CreateJobModal({
         </div>
         <div className="flex flex-col gap-1">
           <Label>Task</Label>
-          <Select value={form.task} onChange={(e) => setForm({ ...form, task: e.target.value })}>
+          <Select value={form.task} onChange={(e) => onTaskChange(e.target.value)}>
             <option value="echo">echo</option>
             <option value="sleep">sleep</option>
             <option value="http_request">http_request</option>

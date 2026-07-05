@@ -36,6 +36,11 @@ export function ApiKeysPage() {
     queryFn: async () => (await api.get<ApiKey[]>("/auth/api-keys")).data,
   });
 
+  const openModal = () => {
+    setName(`API Key ${(keys?.length ?? 0) + 1}`);
+    setModalOpen(true);
+  };
+
   const createKey = useMutation({
     mutationFn: async () =>
       (await api.post("/auth/api-keys", { name, project_id: project?.id ?? null, scopes: [] })).data,
@@ -69,7 +74,7 @@ export function ApiKeysPage() {
           <h1 className="text-3xl font-black uppercase">API Keys</h1>
           <p className="text-sm text-nb-ink/60">Scoped credentials for programmatic access</p>
         </div>
-        <Button onClick={() => setModalOpen(true)}>+ New Key</Button>
+        <Button onClick={openModal}>+ New Key</Button>
       </div>
 
       <Card className="p-0 overflow-x-auto">

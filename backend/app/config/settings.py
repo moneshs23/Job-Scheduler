@@ -9,6 +9,11 @@ class Settings(BaseSettings):
     app_name: str = "Distributed Job Scheduler"
     app_version: str = "1.0.0"
     debug: bool = False
+    # Separate from `debug` on purpose: SQLAlchemy's echo=True dumps every SQL statement (and
+    # its params) to stdout twice per query — for an action like creating a job, which touches
+    # 5-6 tables, that's a wall of raw SQL that reads like the server is malfunctioning even
+    # when nothing is wrong. Off by default; opt in explicitly when you actually need it.
+    sql_echo: bool = False
     environment: str = "development"
 
     database_url: str = "postgresql+asyncpg://scheduler:scheduler@localhost:5432/scheduler"

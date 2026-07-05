@@ -23,6 +23,10 @@ function nextDefaultQueueName(queues: Queue[] | undefined): string {
   return "";
 }
 
+function defaultPolicyName(strategy: string): string {
+  return `${strategy}-backoff`;
+}
+
 export function QueuesPage() {
   const { project } = useProject();
   const { push } = useToast();
@@ -36,11 +40,20 @@ export function QueuesPage() {
     retry_policy_id: "",
   });
   const [policyForm, setPolicyForm] = useState({
-    name: "",
+    name: defaultPolicyName("exponential"),
     strategy: "exponential" as (typeof STRATEGIES)[number],
     max_retries: 3,
     base_delay_ms: 1000,
   });
+  const [policyNameEdited, setPolicyNameEdited] = useState(false);
+
+  const onPolicyStrategyChange = (strategy: (typeof STRATEGIES)[number]) => {
+    setPolicyForm((f) => ({
+      ...f,
+      strategy,
+      name: policyNameEdited ? f.name : defaultPolicyName(strategy),
+    }));
+  };
 
   const { data: queues, isLoading } = useQuery({
     queryKey: ["queues", project?.id],
@@ -199,7 +212,10 @@ export function QueuesPage() {
                 <Label>Policy name</Label>
                 <Input
                   value={policyForm.name}
-                  onChange={(e) => setPolicyForm({ ...policyForm, name: e.target.value })}
+                  onChange={(e) => {
+                    setPolicyNameEdited(true);
+                    setPolicyForm({ ...policyForm, name: e.target.value });
+                  }}
                   placeholder="e.g. slow-backoff"
                 />
               </div>
@@ -208,9 +224,7 @@ export function QueuesPage() {
                   <Label>Strategy</Label>
                   <Select
                     value={policyForm.strategy}
-                    onChange={(e) =>
-                      setPolicyForm({ ...policyForm, strategy: e.target.value as typeof policyForm.strategy })
-                    }
+                    onChange={(e) => onPolicyStrategyChange(e.target.value as (typeof STRATEGIES)[number])}
                   >
                     {STRATEGIES.map((s) => (
                       <option key={s} value={s}>

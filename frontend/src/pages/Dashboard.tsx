@@ -171,7 +171,7 @@ function EmptyState() {
   const { organization, refetchProjects } = useProject();
   const { push } = useToast();
   const queryClient = useQueryClient();
-  const [name, setName] = useState("");
+  const [name, setName] = useState("Production");
 
   const createProject = useMutation({
     mutationFn: async () =>
