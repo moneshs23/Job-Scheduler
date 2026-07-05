@@ -16,3 +16,4 @@ frontend/.env
 .env
 *.log
 .DS_Store
+*.pdf
