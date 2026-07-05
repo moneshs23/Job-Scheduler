@@ -7,7 +7,7 @@ built for reliability, horizontal scalability, and enterprise observability.
 
 **Implemented and verified end-to-end.** Backend (auth, orgs/projects, queues, jobs, workers,
 scheduler, DLQ, WebSocket realtime) and frontend (React dashboard, neobrutalism theme) both run
-locally against real Postgres/Redis, with 16 passing pytest tests (including a concurrency test
+locally against real Postgres/Redis, with 19 passing pytest tests (including a concurrency test
 proving atomic claiming never double-executes a job) and a Playwright-verified UI.
 
 ## Quick Links

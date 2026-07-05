@@ -204,13 +204,15 @@ flowchart TB
 
 ## 3. Folder Structure
 
+> This reflects the repository exactly as implemented (verified against the working tree, not the
+> pre-implementation plan) — see [github.com/moneshs23/Job-Schedular](https://github.com/moneshs23/Job-Schedular).
+
 ```
 distributed-job-scheduler/
 ├── README.md
 ├── docker-compose.yml
-├── docker-compose.prod.yml
 ├── .env.example
-├── Makefile
+├── .gitignore
 │
 ├── docs/
 │   ├── Architecture.md          ← this document
@@ -220,182 +222,124 @@ distributed-job-scheduler/
 │   └── Deployment.md
 │
 ├── docker/
-│   ├── Dockerfile.api
-│   ├── Dockerfile.worker
-│   ├── Dockerfile.scheduler
-│   ├── Dockerfile.frontend
-│   └── nginx/
-│       └── nginx.conf
+│   └── prometheus/
+│       └── prometheus.yml
 │
 ├── backend/
 │   ├── pyproject.toml
 │   ├── alembic.ini
-│   ├── alembic/
-│   │   └── versions/
+│   ├── Dockerfile
+│   ├── docker-entrypoint.sh
+│   ├── migrations/
+│   │   ├── env.py
+│   │   └── versions/                  # initial schema, queue unique constraint, now() default fix
 │   ├── app/
 │   │   ├── main.py                    # FastAPI entrypoint
 │   │   ├── config/
-│   │   │   ├── settings.py            # Pydantic Settings
-│   │   │   └── constants.py
+│   │   │   ├── settings.py            # Pydantic Settings (env-driven)
+│   │   │   └── constants.py           # job/worker status enums, Redis key prefixes
 │   │   ├── api/
-│   │   │   ├── deps.py                # Dependency injection
-│   │   │   ├── router.py              # Aggregated routes
-│   │   │   └── v1/
-│   │   │       ├── auth.py
-│   │   │       ├── organizations.py
-│   │   │       ├── projects.py
-│   │   │       ├── queues.py
-│   │   │       ├── jobs.py
-│   │   │       ├── workers.py
-│   │   │       ├── dashboard.py
-│   │   │       ├── search.py
-│   │   │       └── health.py
+│   │   │   ├── router.py              # Aggregates all routers under /api/v1
+│   │   │   └── routes/
+│   │   │       ├── auth.py            # register/login/refresh/me/api-keys
+│   │   │       ├── organizations.py   # orgs, projects, audit-logs
+│   │   │       ├── queues.py          # queues + retry-policies
+│   │   │       ├── jobs.py            # jobs + dead-letter-queue
+│   │   │       ├── workers.py         # registration, heartbeats, shutdown
+│   │   │       ├── dashboard.py       # overview stats
+│   │   │       ├── websocket.py       # /ws realtime endpoint
+│   │   │       └── health.py          # DB + Redis health check
 │   │   ├── auth/
-│   │   │   ├── jwt.py
-│   │   │   ├── password.py
-│   │   │   ├── rbac.py
-│   │   │   └── api_keys.py
-│   │   ├── models/
-│   │   │   ├── base.py
-│   │   │   ├── user.py
-│   │   │   ├── organization.py
-│   │   │   ├── project.py
-│   │   │   ├── queue.py
-│   │   │   ├── job.py
-│   │   │   ├── scheduled_job.py
-│   │   │   ├── retry_policy.py
-│   │   │   ├── worker.py
-│   │   │   ├── execution.py
-│   │   │   ├── dead_letter.py
-│   │   │   ├── api_key.py
-│   │   │   └── audit_log.py
-│   │   ├── schemas/
-│   │   │   ├── auth.py
-│   │   │   ├── queue.py
-│   │   │   ├── job.py
-│   │   │   ├── worker.py
-│   │   │   └── dashboard.py
-│   │   ├── repositories/
-│   │   │   ├── base.py
-│   │   │   ├── job_repository.py
-│   │   │   ├── queue_repository.py
-│   │   │   ├── worker_repository.py
-│   │   │   └── execution_repository.py
-│   │   ├── services/
-│   │   │   ├── job_service.py
-│   │   │   ├── queue_service.py
-│   │   │   ├── worker_service.py
-│   │   │   ├── dashboard_service.py
-│   │   │   └── search_service.py
+│   │   │   ├── security.py            # JWT issue/verify, bcrypt hashing, API key generation
+│   │   │   └── dependencies.py        # Principal resolution, RBAC, project-scope checks
+│   │   ├── models/                    # SQLAlchemy 2.0 ORM — 9 files, 15 tables
+│   │   │   ├── base.py                # Declarative base, timestamp/UUID mixins
+│   │   │   ├── organization.py        # User, Organization, OrganizationMember, Project
+│   │   │   ├── queue.py               # Queue, RetryPolicy
+│   │   │   ├── job.py                 # Job, ScheduledJob
+│   │   │   ├── worker.py              # Worker, WorkerHeartbeat
+│   │   │   ├── execution.py           # JobExecution, JobLog
+│   │   │   ├── dead_letter.py         # DeadLetterEntry
+│   │   │   ├── api_key.py             # APIKey
+│   │   │   └── audit.py               # AuditLog
+│   │   ├── schemas/                   # Pydantic request/response models (mirrors models/)
+│   │   ├── repositories/              # Data-access layer — one repo per model, Repository pattern
+│   │   ├── services/                  # Business logic — auth, project, queue, job, worker, dashboard, audit
 │   │   ├── scheduler/
-│   │   │   ├── main.py                # Scheduler process entry
-│   │   │   ├── cron_scanner.py
-│   │   │   ├── delay_scanner.py
-│   │   │   └── recurring_engine.py
+│   │   │   ├── main.py                # Scheduler process entrypoint
+│   │   │   ├── service.py             # Delay scanner + cron scanner
+│   │   │   └── leader.py              # Redis-lock leader election for HA
 │   │   ├── workers/
-│   │   │   ├── main.py                # Worker process entry
-│   │   │   ├── claim_engine.py
-│   │   │   ├── execution_engine.py
-│   │   │   ├── concurrency_pool.py
-│   │   │   ├── heartbeat.py
-│   │   │   └── graceful_shutdown.py
-│   │   ├── queues/
-│   │   │   ├── priority_queue.py
-│   │   │   ├── queue_manager.py
-│   │   │   └── stream_publisher.py
-│   │   ├── jobs/
-│   │   │   ├── job_factory.py
-│   │   │   ├── job_types.py           # immediate, delayed, cron, batch
-│   │   │   └── state_machine.py
+│   │   │   ├── main.py                # Worker process entrypoint (signal handling)
+│   │   │   └── worker.py              # Poll → claim → execute → heartbeat → graceful shutdown
 │   │   ├── execution/
-│   │   │   ├── executor.py
-│   │   │   ├── cancellation.py
-│   │   │   └── idempotency.py
+│   │   │   ├── engine.py              # Runs one claimed job; decides retry vs. dead-letter
+│   │   │   └── registry.py            # Pluggable task handlers (echo, sleep, http_request, ...)
 │   │   ├── retry/
-│   │   │   ├── policies.py            # fixed, linear, exponential, custom
-│   │   │   └── dlq_handler.py
-│   │   ├── heartbeat/
-│   │   │   └── worker_heartbeat.py
+│   │   │   └── policy.py              # fixed/linear/exponential/custom backoff math
+│   │   ├── queues/
+│   │   │   ├── redis_client.py
+│   │   │   ├── streams.py             # Redis Streams — claim wake-up signal
+│   │   │   └── pubsub.py              # Redis Pub/Sub — WebSocket event bus
 │   │   ├── websocket/
-│   │   │   ├── manager.py
-│   │   │   └── events.py
+│   │   │   └── hub.py                 # Connection registry + broadcast
 │   │   ├── middleware/
-│   │   │   ├── cors.py
-│   │   │   ├── rate_limit.py
-│   │   │   ├── request_logging.py
-│   │   │   └── exception_handler.py
+│   │   │   ├── rate_limit.py          # Fixed-window, Redis-backed, per-IP
+│   │   │   ├── request_logging.py     # Structured request logs + Prometheus timing
+│   │   │   └── exception_handler.py   # Uniform {"error": ...} responses
 │   │   ├── database/
-│   │   │   ├── session.py
-│   │   │   └── migrations support
-│   │   ├── utils/
-│   │   │   ├── pagination.py
-│   │   │   ├── filters.py
-│   │   │   └── datetime_utils.py
+│   │   │   └── session.py             # Async engine + session factory
 │   │   ├── logging/
-│   │   │   └── structured_logger.py
+│   │   │   └── setup.py               # structlog JSON configuration
 │   │   └── monitoring/
-│   │       ├── metrics.py             # Prometheus
-│   │       └── health.py
+│   │       └── metrics.py             # Prometheus counters/histograms
 │   └── tests/
-│       ├── conftest.py
+│       ├── conftest.py                # Test DB/session/client fixtures
 │       ├── unit/
-│       │   ├── test_retry_policies.py
-│       │   ├── test_state_machine.py
-│       │   └── test_claim_engine.py
+│       │   ├── test_retry_policy.py
+│       │   └── test_auth_security.py
 │       └── integration/
-│           ├── test_job_lifecycle.py
-│           ├── test_api_jobs.py
-│           └── test_worker_claim.py
+│           ├── test_claim_engine.py           # Proves SKIP LOCKED never double-claims
+│           ├── test_api_job_lifecycle.py
+│           ├── test_validation_and_audit.py
+│           └── test_schema_defaults.py        # Regression guard for the now() default bug
 │
 └── frontend/
     ├── package.json
     ├── vite.config.ts
-    ├── tailwind.config.ts
-    ├── components.json              # ShadCN
     ├── index.html
+    ├── Dockerfile
+    ├── nginx.conf
     └── src/
         ├── main.tsx
-        ├── App.tsx
-        ├── index.css                # Neobrutalism tokens
+        ├── App.tsx                   # Routes + provider tree
+        ├── index.css                 # Neobrutalism design tokens (theme-aware)
         ├── lib/
-        │   ├── api.ts
-        │   ├── ws.ts
-        │   └── utils.ts
+        │   ├── api.ts                 # axios instance + refresh-token interceptor
+        │   ├── types.ts               # Shared TS types mirroring backend schemas
+        │   ├── errors.ts              # Axios error → user-facing message
+        │   └── format.ts              # Relative time, duration, number formatting
         ├── hooks/
-        │   ├── useAuth.ts
-        │   ├── useJobs.ts
-        │   └── useWebSocket.ts
+        │   ├── useRealtime.ts         # WebSocket → React Query cache invalidation
+        │   ├── useTheme.ts            # Dark/light toggle, persisted
+        │   └── useDebounce.ts
+        ├── context/
+        │   ├── AuthContext.tsx
+        │   ├── ProjectContext.tsx     # Current org/project selection
+        │   └── ToastContext.tsx
         ├── components/
-        │   ├── ui/                  # ShadCN + neobrutal overrides
-        │   ├── layout/
-        │   │   ├── Sidebar.tsx
-        │   │   ├── Header.tsx
-        │   │   └── NeoCard.tsx
-        │   ├── dashboard/
-        │   │   ├── OverviewCards.tsx
-        │   │   ├── ThroughputChart.tsx
-        │   │   ├── LatencyChart.tsx
-        │   │   └── FailureChart.tsx
-        │   ├── jobs/
-        │   │   ├── JobsTable.tsx
-        │   │   ├── JobDetail.tsx
-        │   │   └── CreateJobForm.tsx
-        │   ├── queues/
-        │   │   ├── QueueList.tsx
-        │   │   └── QueueConfig.tsx
-        │   └── workers/
-        │       ├── WorkerGrid.tsx
-        │       └── HeartbeatTimeline.tsx
-        ├── pages/
-        │   ├── Login.tsx
-        │   ├── Dashboard.tsx
-        │   ├── Jobs.tsx
-        │   ├── Queues.tsx
-        │   ├── Workers.tsx
-        │   ├── DeadLetter.tsx
-        │   └── Settings.tsx
-        └── routes/
-            └── index.tsx
+        │   ├── Layout.tsx             # Sidebar nav + realtime indicator
+        │   ├── ProtectedRoute.tsx
+        │   └── ui/                    # Button, Card, Modal, Badge, ConfirmDialog, Skeleton, Input
+        └── pages/
+            ├── Login.tsx / Register.tsx
+            ├── Dashboard.tsx          # Overview cards, charts, onboarding checklist
+            ├── Queues.tsx             # Priority, concurrency, pause/resume, retry policies
+            ├── Jobs.tsx / JobDetail.tsx
+            ├── Workers.tsx            # Live status + copy-paste start command
+            ├── DeadLetterQueue.tsx
+            ├── ApiKeys.tsx
+            └── AuditLog.tsx
 ```
 
 ---
